@@ -238,31 +238,27 @@ func (c *GradientController) adjust(newLimit uint, settle bool) {
 func min(a, b uint) uint {
 	if a < b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 func max(a, b uint) uint {
 	if a > b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 
 func minf(a, b float64) float64 {
 	if a < b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 func maxf(a, b float64) float64 {
 	if a > b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 
 func (c *GradientController) Stop(ctx context.Context) {
