@@ -18,6 +18,12 @@ type Notifier interface {
 	NoWorkChan() chan struct{}
 }
 
+type Execution struct {
+	InFlight uint
+	Latency  time.Duration
+	Err      error
+}
+
 type NonBlockingReporter struct {
 	latencies  chan Execution
 	noWorkChan chan struct{}
@@ -229,10 +235,4 @@ func (o *WorkerPool) SettleDown(ctx context.Context) {
 		}
 		o.actualNL.Wait()
 	}
-}
-
-type Execution struct {
-	InFlight uint
-	Latency  time.Duration
-	Err      error
 }
