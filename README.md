@@ -3,7 +3,7 @@ conc
 [![GoDoc](https://godoc.org/github.com/JensRantil/conc?status.svg)](https://godoc.org/github.com/JensRantil/conc)
 
 **Status:** Alpha. Please file issues for all things high and low (including of
-naming of types and functions.
+naming of types and functions).
 
 A library that dynamically adjusts concurrency of a worker pool based on
 observed latency changes. Thereby constantly trying to achieve optimal
