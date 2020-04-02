@@ -114,23 +114,23 @@ type Runner interface {
 	Start(stopper <-chan struct{}, r Reporter)
 }
 
-// OrchestratorMetrics is called for different events in the orchestrator.
-type OrchestratorMetrics interface {
+// WorkerPoolMetrics is called for different events in the orchestrator.
+type WorkerPoolMetrics interface {
 	Incr(n uint)
 	Decr(n uint)
 	Restart()
 }
 
-// nilMetric is the default OrchestratorMetrics if none other is set.
+// nilMetric is the default WorkerPoolMetrics if none other is set.
 type nilMetric struct{}
 
 func (n *nilMetric) Incr(x uint) {}
 func (n *nilMetric) Decr(x uint) {}
 func (n *nilMetric) Restart()    {}
 
-// Orchestrator keeps track of current running processes. It starts and stops them.
-type Orchestrator struct {
-	metrics OrchestratorMetrics
+// WorkerPool keeps track of current running processes. It starts and stops them.
+type WorkerPool struct {
+	metrics WorkerPoolMetrics
 
 	run Runner
 	rep Reporter
@@ -145,18 +145,18 @@ type Orchestrator struct {
 	wantedN uint
 }
 
-type OrchestratorOpts func(*Orchestrator)
+type WorkerPoolOpts func(*WorkerPool)
 
-func WithMetrics(metrics OrchestratorMetrics) OrchestratorOpts {
-	return func(o *Orchestrator) {
+func WithMetrics(metrics WorkerPoolMetrics) WorkerPoolOpts {
+	return func(o *WorkerPool) {
 		o.metrics = metrics
 	}
 }
 
-// NewOrchestrator creates an Orchestrator. The orchestrator starts with
+// NewWorkerPool creates an WorkerPool. The orchestrator starts with
 // WantedN set to zero. Call Stop(...) to properly clean up after usage.
-func NewOrchestrator(r Runner, re Reporter, opts ...OrchestratorOpts) *Orchestrator {
-	res := &Orchestrator{
+func NewWorkerPool(r Runner, re Reporter, opts ...WorkerPoolOpts) *WorkerPool {
+	res := &WorkerPool{
 		&nilMetric{},
 		r,
 		re,
@@ -172,20 +172,20 @@ func NewOrchestrator(r Runner, re Reporter, opts ...OrchestratorOpts) *Orchestra
 }
 
 // ActualN returns the number of processes currently running.
-func (o *Orchestrator) ActualN() uint {
+func (o *WorkerPool) ActualN() uint {
 	o.actualNL.L.Lock()
 	defer o.actualNL.L.Unlock()
 	return o.actualN
 }
 
 // WantedN returns the number of processes we want running.
-func (o *Orchestrator) WantedN() uint {
+func (o *WorkerPool) WantedN() uint {
 	return uint(o.wantedN)
 }
 
 // Incr increases the number of running processes. To wait for them to have
 // shut down, call SettleDown().
-func (o *Orchestrator) Incr(n uint) {
+func (o *WorkerPool) Incr(n uint) {
 	o.wantedN += n
 
 	o.actualNL.L.Lock()
@@ -199,7 +199,7 @@ func (o *Orchestrator) Incr(n uint) {
 	}
 }
 
-func (o *Orchestrator) runProcess() {
+func (o *WorkerPool) runProcess() {
 	o.run.Start(o.stopper, o.rep)
 
 	o.actualNL.L.Lock()
@@ -210,7 +210,7 @@ func (o *Orchestrator) runProcess() {
 
 // Decr reduces the number of running processes. They will be closed async.
 // To wait for them to have shut down, call SettleDown().
-func (o *Orchestrator) Decr(n uint) {
+func (o *WorkerPool) Decr(n uint) {
 	o.wantedN -= n
 	if o.wantedN < 1 {
 		// Can't have zero of negative number of processes.
@@ -226,7 +226,7 @@ func (o *Orchestrator) Decr(n uint) {
 }
 
 // Settle waits for WantedN to be the same as ActualN.
-func (o *Orchestrator) SettleDown(ctx context.Context) {
+func (o *WorkerPool) SettleDown(ctx context.Context) {
 	// Consider using https://github.com/JensRantil/go-sync. Would likely simplify code.
 	localCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

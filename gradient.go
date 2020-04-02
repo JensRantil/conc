@@ -65,10 +65,10 @@ func WithMaxLimit(b uint) GradientOpts {
 // method to make it run. Once done, make sure to call Stop() to clear upp
 // resources. After stopped, the controller can be started again if you want
 // to.
-func NewGradientController(n Notifier, orch *Orchestrator, opts ...GradientOpts) *GradientController {
+func NewGradientController(n Notifier, pool *WorkerPool, opts ...GradientOpts) *GradientController {
 	c := &GradientController{
 		notif:         n,
-		orch:          orch,
+		pool:          pool,
 		initial:       1,
 		min:           1,
 		max:           DefaultMaxConcurrency,
@@ -100,7 +100,7 @@ func NewGradientController(n Notifier, orch *Orchestrator, opts ...GradientOpts)
 // adding basic limits such as minimum and maximum concurrency.
 type GradientController struct {
 	notif Notifier
-	orch  *Orchestrator
+	pool  *WorkerPool
 
 	initial uint
 	min     uint
@@ -135,7 +135,7 @@ func (c *GradientController) Start() {
 	go func() {
 		defer c.wg.Done()
 
-		c.orch.Incr(c.initial)
+		c.pool.Incr(c.initial)
 		c.resetRttCounter = c.nextResetCounter()
 		c.resetNoLoadRtt = true
 
@@ -148,7 +148,7 @@ func (c *GradientController) Start() {
 			case <-c.notif.NoWorkChan():
 				// TODO: Can this be done in a better way? Are we shutting down
 				// worker goroutines too fast or too slow?
-				if newLimit := c.orch.WantedN() - 1; newLimit >= c.min {
+				if newLimit := c.pool.WantedN() - 1; newLimit >= c.min {
 					c.adjust(newLimit, false)
 				}
 			}
@@ -161,7 +161,7 @@ func (c *GradientController) update(r ControllerReport) uint {
 	//
 	// [1] https://github.com/Netflix/concurrency-limits/blob/18692b09e55a0574bea94d92e95a03c3e89012d2/concurrency-limits-core/src/main/java/com/netflix/concurrency/limits/limit/GradientLimit.java#L259
 
-	currLimit := c.orch.WantedN()
+	currLimit := c.pool.WantedN()
 	queueSize := c.queueSize(currLimit)
 
 	c.resetRttCounter--
@@ -210,18 +210,18 @@ func (c *GradientController) adjust(newLimit uint, settle bool) {
 
 	// TODO: Move this if case into a new function in the orchestrator and make
 	// Incr/Decr unexported
-	currLimit := c.orch.WantedN()
+	currLimit := c.pool.WantedN()
 	if newLimit > currLimit {
-		c.orch.Incr(newLimit - currLimit)
+		c.pool.Incr(newLimit - currLimit)
 	} else if currLimit > newLimit {
-		c.orch.Decr(currLimit - newLimit)
+		c.pool.Decr(currLimit - newLimit)
 	} else /* currLimit==newLimit */ {
 		return
 	}
 	if settle {
 		// TODO: Support for injecting a custom context for the
 		// GradientController. Stop() function should cancel it.
-		c.orch.SettleDown(context.TODO())
+		c.pool.SettleDown(context.TODO())
 	}
 
 	// Make sure the latencies we'll be collecting are only since the
@@ -265,8 +265,8 @@ func (c *GradientController) Stop(ctx context.Context) {
 	c.wg.Wait()
 
 	// ...then we ask the orchestrator to shut down all worker threads.
-	c.orch.Decr(c.orch.WantedN())
-	c.orch.SettleDown(ctx)
+	c.pool.Decr(c.pool.WantedN())
+	c.pool.SettleDown(ctx)
 }
 
 func sqrt(x uint) uint {

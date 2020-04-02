@@ -30,7 +30,7 @@ func main() {
 		Alpha: 15,
 	}
 
-	orch := conc.NewOrchestrator(&testRunner{
+	orch := conc.NewWorkerPool(&testRunner{
 		MaxConcurrency: *maxConcurrency,
 		ReqDurations:   reqduration,
 		ReqDist:        requestdist,
