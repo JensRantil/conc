@@ -17,7 +17,7 @@ type Notifier interface {
 
 type Execution struct {
 	InFlight uint
-	Latency  time.Duration
+	RTT      time.Duration
 	Err      error
 }
 

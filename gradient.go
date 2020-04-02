@@ -182,15 +182,15 @@ func (c *GradientController) update(r Execution) uint {
 		return queueSize
 	}
 
-	if c.resetNoLoadRTT || c.noLoadRTT > r.Latency {
-		c.noLoadRTT = r.Latency
+	if c.resetNoLoadRTT || c.noLoadRTT > r.RTT {
+		c.noLoadRTT = r.RTT
 		c.resetNoLoadRTT = false
 	}
 
 	// TODO: Remove this line and make this configurable to be logged or not.
-	log.Println("Reported latency:", r.Latency, "NoLoadRTT:", c.noLoadRTT)
+	log.Println("Reported latency:", r.RTT, "NoLoadRTT:", c.noLoadRTT)
 
-	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float64(c.noLoadRTT)/float64(r.Latency)))
+	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float64(c.noLoadRTT)/float64(r.RTT)))
 
 	fcurrLimit := float64(currLimit)
 	var newLimit float64
