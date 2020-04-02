@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"math"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -61,6 +62,14 @@ func WithMaxLimit(b uint) GradientOpts {
 	}
 }
 
+func WithRandomSource(s rand.Source) GradientOpts {
+	return func(g *GradientController) {
+		g.rand = rand.New(s)
+	}
+}
+
+const highlyRandomInt = 42
+
 // NewGradientController creates a new GradientController. Call the Start()
 // method to make it run. Once done, make sure to call Stop() to clear upp
 // resources. After stopped, the controller can be started again if you want
@@ -77,6 +86,7 @@ func NewGradientController(n Notifier, pool *WorkerPool, opts ...GradientOpts) *
 		queueSize:     sqrt,
 		probeInterval: 1000,
 		backoffRatio:  0.9,
+		rand:          rand.New(rand.NewSource(highlyRandomInt)),
 	}
 	for _, o := range opts {
 		o(c)
@@ -114,6 +124,7 @@ type GradientController struct {
 	queueSize     func(uint) uint
 	probeInterval uint
 	backoffRatio  float64
+	rand          *rand.Rand
 
 	// Variables that are modified by the control loop.
 	//
@@ -197,8 +208,7 @@ func (c *GradientController) update(r Execution) uint {
 }
 
 func (c *GradientController) nextResetCounter() uint {
-	// TODO: Add randomness here. See https://github.com/Netflix/concurrency-limits/blob/18692b09e55a0574bea94d92e95a03c3e89012d2/concurrency-limits-core/src/main/java/com/netflix/concurrency/limits/limit/GradientLimit.java#L255
-	return c.probeInterval
+	return c.probeInterval + uint(c.rand.Intn(int(c.probeInterval)))
 }
 
 func (c *GradientController) adjust(newLimit uint, settle bool) {
