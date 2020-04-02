@@ -13,7 +13,7 @@ const DefaultMaxConcurrency = 20
 
 type GradientOpts func(*GradientController)
 
-func WithRttTolerance(rttt float64) GradientOpts {
+func WithRTTTolerance(rttt float64) GradientOpts {
 	return func(g *GradientController) {
 		g.rttTolerance = rttt
 	}
@@ -129,9 +129,9 @@ type GradientController struct {
 	// Variables that are modified by the control loop.
 	//
 	// TODO: Refactor the update method out into a separate type to avoid these variables bloating this type.
-	resetRttCounter uint
-	resetNoLoadRtt  bool
-	noLoadRtt       time.Duration
+	resetRTTCounter uint
+	resetNoLoadRTT  bool
+	noLoadRTT       time.Duration
 
 	// The following variables are instantiated at start.
 	quitChan chan struct{}
@@ -147,8 +147,8 @@ func (c *GradientController) Start() {
 		defer c.wg.Done()
 
 		c.pool.Incr(c.initial)
-		c.resetRttCounter = c.nextResetCounter()
-		c.resetNoLoadRtt = true
+		c.resetRTTCounter = c.nextResetCounter()
+		c.resetNoLoadRTT = true
 
 		for {
 			select {
@@ -175,22 +175,22 @@ func (c *GradientController) update(r Execution) uint {
 	currLimit := c.pool.WantedN()
 	queueSize := c.queueSize(currLimit)
 
-	c.resetRttCounter--
-	if c.resetRttCounter <= 0 {
-		c.resetRttCounter = c.nextResetCounter()
-		c.resetNoLoadRtt = true
+	c.resetRTTCounter--
+	if c.resetRTTCounter <= 0 {
+		c.resetRTTCounter = c.nextResetCounter()
+		c.resetNoLoadRTT = true
 		return queueSize
 	}
 
-	if c.resetNoLoadRtt || c.noLoadRtt > r.Latency {
-		c.noLoadRtt = r.Latency
-		c.resetNoLoadRtt = false
+	if c.resetNoLoadRTT || c.noLoadRTT > r.Latency {
+		c.noLoadRTT = r.Latency
+		c.resetNoLoadRTT = false
 	}
 
 	// TODO: Remove this line and make this configurable to be logged or not.
-	log.Println("Reported latency:", r.Latency, "NoLoadRtt:", c.noLoadRtt)
+	log.Println("Reported latency:", r.Latency, "NoLoadRTT:", c.noLoadRTT)
 
-	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float64(c.noLoadRtt)/float64(r.Latency)))
+	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float64(c.noLoadRTT)/float64(r.Latency)))
 
 	fcurrLimit := float64(currLimit)
 	var newLimit float64
