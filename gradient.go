@@ -233,10 +233,6 @@ func (c *GradientController) adjust(newLimit uint, settle bool) {
 		// GradientController. Stop() function should cancel it.
 		c.pool.SettleDown(context.TODO())
 	}
-
-	// Make sure the latencies we'll be collecting are only since the
-	// new changes have taken effect.
-	c.notif.ClearPendingNotifications()
 }
 
 func min(a, b uint) uint {

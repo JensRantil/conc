@@ -15,22 +15,17 @@ type Reporter interface {
 
 type Notifier interface {
 	NotifyChan() chan Execution
-	ClearPendingNotifications()
 	NoWorkChan() chan struct{}
 }
 
 type NonBlockingReporter struct {
-	chanSize   int
 	latencies  chan Execution
-	mLatencies sync.RWMutex
-
 	noWorkChan chan struct{}
 	inFlight   int32
 }
 
 func NewNonBlockingReporter(chanSize int) *NonBlockingReporter {
 	return &NonBlockingReporter{
-		chanSize:   chanSize,
 		latencies:  make(chan Execution, chanSize),
 		noWorkChan: make(chan struct{}),
 	}
@@ -41,15 +36,7 @@ func (r *NonBlockingReporter) NoWorkChan() chan struct{} {
 }
 
 func (r *NonBlockingReporter) NotifyChan() chan Execution {
-	r.mLatencies.RLock()
-	defer r.mLatencies.RUnlock()
 	return r.latencies
-}
-
-func (r *NonBlockingReporter) ClearPendingNotifications() {
-	r.mLatencies.Lock()
-	defer r.mLatencies.Unlock()
-	r.latencies = make(chan Execution, r.chanSize)
 }
 
 // NoWork signals there was no work to be performed.
@@ -89,9 +76,7 @@ func (r *NonBlockingReporter) done(latency time.Duration, err error) {
 	// r.inFlight in case of panic etc.
 	inflight := atomic.AddInt32(&r.inFlight, -1)
 
-	r.mLatencies.RLock()
 	c := r.latencies
-	r.mLatencies.RUnlock()
 
 	select {
 	case c <- Execution{uint(inflight), latency, err}:
