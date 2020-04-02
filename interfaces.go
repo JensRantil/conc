@@ -107,8 +107,9 @@ func (r *NonBlockingReporter) done(latency time.Duration, err error) {
 type Runner interface {
 	// Start is called when your application should start another processing
 	// thread. The Start function must be blocking. Start must stop processing
-	// when stopper has been closed. All processing in Start must report its
-	// latency, possible errors, and if it has run out of work, to r.
+	// when there is an element that can be read from stopper. All processing
+	// in Start must report its latency, possible errors, and if it has run out
+	// of work, to r.
 	//
 	// TODO: Should stopper be a context.Context instead?
 	Start(stopper <-chan struct{}, r Reporter)
