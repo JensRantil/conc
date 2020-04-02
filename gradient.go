@@ -156,7 +156,7 @@ func (c *GradientController) Start() {
 	}()
 }
 
-func (c *GradientController) update(r ControllerReport) uint {
+func (c *GradientController) update(r Execution) uint {
 	// This function is hugely inspired by [1].
 	//
 	// [1] https://github.com/Netflix/concurrency-limits/blob/18692b09e55a0574bea94d92e95a03c3e89012d2/concurrency-limits-core/src/main/java/com/netflix/concurrency/limits/limit/GradientLimit.java#L259

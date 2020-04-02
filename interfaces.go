@@ -14,14 +14,14 @@ type Reporter interface {
 }
 
 type Notifier interface {
-	NotifyChan() chan ControllerReport
+	NotifyChan() chan Execution
 	ClearPendingNotifications()
 	NoWorkChan() chan struct{}
 }
 
 type NonBlockingReporter struct {
 	chanSize   int
-	latencies  chan ControllerReport
+	latencies  chan Execution
 	mLatencies sync.RWMutex
 
 	noWorkChan chan struct{}
@@ -31,7 +31,7 @@ type NonBlockingReporter struct {
 func NewNonBlockingReporter(chanSize int) *NonBlockingReporter {
 	return &NonBlockingReporter{
 		chanSize:   chanSize,
-		latencies:  make(chan ControllerReport, chanSize),
+		latencies:  make(chan Execution, chanSize),
 		noWorkChan: make(chan struct{}),
 	}
 }
@@ -40,7 +40,7 @@ func (r *NonBlockingReporter) NoWorkChan() chan struct{} {
 	return r.noWorkChan
 }
 
-func (r *NonBlockingReporter) NotifyChan() chan ControllerReport {
+func (r *NonBlockingReporter) NotifyChan() chan Execution {
 	r.mLatencies.RLock()
 	defer r.mLatencies.RUnlock()
 	return r.latencies
@@ -49,7 +49,7 @@ func (r *NonBlockingReporter) NotifyChan() chan ControllerReport {
 func (r *NonBlockingReporter) ClearPendingNotifications() {
 	r.mLatencies.Lock()
 	defer r.mLatencies.Unlock()
-	r.latencies = make(chan ControllerReport, r.chanSize)
+	r.latencies = make(chan Execution, r.chanSize)
 }
 
 // NoWork signals there was no work to be performed.
@@ -94,9 +94,9 @@ func (r *NonBlockingReporter) done(latency time.Duration, err error) {
 	r.mLatencies.RUnlock()
 
 	select {
-	case c <- ControllerReport{uint(inflight), latency, err}:
+	case c <- Execution{uint(inflight), latency, err}:
 	// TODO: Investigate if we can somehow introduce a sync.Pool for
-	// ControllerReports to reduce garbage collection overhead.
+	// Executions to reduce garbage collection overhead.
 	default:
 		// Never blocking on this call.
 		// TODO: Add instrumentation for if this happens.
@@ -247,8 +247,7 @@ func (o *WorkerPool) SettleDown(ctx context.Context) {
 	}
 }
 
-// TODO: Set a better name. Execution?
-type ControllerReport struct {
+type Execution struct {
 	InFlight uint
 	Latency  time.Duration
 	Err      error
