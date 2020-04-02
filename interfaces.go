@@ -110,8 +110,6 @@ type Runner interface {
 	// when there is an element that can be read from stopper. All processing
 	// in Start must report its latency, possible errors, and if it has run out
 	// of work, to r.
-	//
-	// TODO: Should stopper be a context.Context instead?
 	Start(stopper <-chan struct{}, r Reporter)
 }
 
