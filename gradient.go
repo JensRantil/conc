@@ -12,13 +12,13 @@ const DefaultMaxConcurrency = 20
 
 type GradientOpts func(*GradientController)
 
-func WithRttTolerance(rttt float32) GradientOpts {
+func WithRttTolerance(rttt float64) GradientOpts {
 	return func(g *GradientController) {
 		g.rttTolerance = rttt
 	}
 }
 
-func WithSmoothing(s float32) GradientOpts {
+func WithSmoothing(s float64) GradientOpts {
 	return func(g *GradientController) {
 		g.smoothing = s
 	}
@@ -37,7 +37,7 @@ func WithProbeInterval(i uint) GradientOpts {
 }
 
 // WithBackoffRatio sets
-func WithBackoffRatio(b float32) GradientOpts {
+func WithBackoffRatio(b float64) GradientOpts {
 	return func(g *GradientController) {
 		g.backoffRatio = b
 	}
@@ -109,11 +109,11 @@ type GradientController struct {
 	// Inspired by [1].
 	//
 	// [1] https://github.com/Netflix/concurrency-limits/blob/18692b09e55a0574bea94d92e95a03c3e89012d2/concurrency-limits-core/src/main/java/com/netflix/concurrency/limits/limit/GradientLimit.java
-	rttTolerance  float32
-	smoothing     float32
+	rttTolerance  float64
+	smoothing     float64
 	queueSize     func(uint) uint
 	probeInterval uint
-	backoffRatio  float32
+	backoffRatio  float64
 
 	// Variables that are modified by the control loop.
 	//
@@ -179,14 +179,14 @@ func (c *GradientController) update(r ControllerReport) uint {
 	// TODO: Remove this line and make this configurable to be logged or not.
 	log.Println("Reported latency:", r.Latency, "NoLoadRtt:", c.noLoadRtt)
 
-	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float32(c.noLoadRtt)/float32(r.Latency)))
+	gradient := maxf(0.5, minf(1.0, c.rttTolerance*float64(c.noLoadRtt)/float64(r.Latency)))
 
-	fcurrLimit := float32(currLimit)
-	var newLimit float32
+	fcurrLimit := float64(currLimit)
+	var newLimit float64
 	if r.Err != nil {
 		newLimit = fcurrLimit * c.backoffRatio
 	} else {
-		newLimit = fcurrLimit*gradient + float32(queueSize)
+		newLimit = fcurrLimit*gradient + float64(queueSize)
 	}
 
 	if newLimit < fcurrLimit {
@@ -244,14 +244,14 @@ func max(a, b uint) uint {
 	}
 }
 
-func minf(a, b float32) float32 {
+func minf(a, b float64) float64 {
 	if a < b {
 		return a
 	} else {
 		return b
 	}
 }
-func maxf(a, b float32) float32 {
+func maxf(a, b float64) float64 {
 	if a > b {
 		return a
 	} else {

@@ -42,8 +42,8 @@ func main() {
 		conc.WithMaxLimit(*maxLimit),
 		conc.WithInitialLimit(*initialLimit),
 		conc.WithProbeInterval(*probeInterval),
-		conc.WithRttTolerance(float32(*rttTolerance)),
-		conc.WithSmoothing(float32(*smoothing)),
+		conc.WithRttTolerance(float64(*rttTolerance)),
+		conc.WithSmoothing(float64(*smoothing)),
 	)
 
 	controller.Start()
